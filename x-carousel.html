@@ -1,0 +1,239 @@
+<link rel="import" type="" href="../polymer/polymer.html">
+
+<!--
+## x-carousel
+This component is a responsive, touch-enabled, scrollable carousel. Put in
+some elements and style it as you wish.
+### Example
+<style>
+    --x-carousel-button {
+        background: red;
+    }
+}
+</style>
+<x-carousel>
+    <div>One</div>
+    <div>Two</div>
+    <div>Three</div>
+</x-carousel>
+
+@demo demo/x-carousel.html
+
+ -->
+
+<dom-module id="x-carousel">
+    <style>
+        :host {
+            display: flex;
+            align-items: stretch;
+        }
+        .button-slot {
+            transition: opacity ease 0.5s;
+            z-index: 1;
+        }
+        .hidden {
+            visibility: hidden;
+            opacity: 0;
+        }
+        #viewport {
+            flex: 1 0;
+            display: flex;
+        }
+        #viewport.non-touch {
+            overflow: hidden;
+        }
+        #viewport.touch {
+            overflow-x: scroll;
+            -webkit-overflow-scrolling: touch;
+            -ms-scroll-chaining: chained;
+        }
+        #content {
+            flex: 1 0 auto;
+            overflow: visible;
+            display: flex;
+            flex-wrap: nowrap;
+            flex-direction: row;
+        }
+        .ease {
+            transition: all ease 0.5s;
+        }
+    </style>
+    <template>
+        <div class$="button-slot [[applyHiddenClass(isTouch, buttonsNeeded)]]" on-tap="_leftTap">
+            <slot name="left-button"></slot>
+        </div>
+        <div id="viewport" class$="{{applyOverflowVisibility(isTouch)}}"
+             on-mousedown="dragStart" on-mousemove="dragMove"
+             on-mouseup="dragStop" on-mouseout="dragCancel">
+            <div id="content" class$="{{applyEaseClass(moving)}}">
+                <slot name="content"></slot>
+            </div>
+        </div>
+        <div class$="button-slot [[applyHiddenClass(isTouch, buttonsNeeded)]]" on-tap="_rightTap">
+            <slot name="right-button"></slot>
+        </div>
+    </template>
+    <script type="text/javascript">
+
+        Polymer({
+            is: 'x-carousel',
+            properties: {
+                offset: {
+                    type: Number,
+                    value: 0,
+                    notify: true
+                },
+                moving: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                isTouch: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    observer: '_updateUI'
+                },
+                withMouseScroll: {
+                    type: Boolean,
+                    value: false
+                },
+                buttonsNeeded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                }
+            },
+            _leftTap: function (e) {
+                var target = e.path ? e.path[0] : e.target;
+                if (target.hasAttribute('carousel-control-left')) {
+                    this.moveLeft();
+                }
+            },
+            _rightTap: function (e) {
+                var target = e.path ? e.path[0] : e.target;
+                if (target.hasAttribute('carousel-control-right')) {
+                    this.moveRight();
+                }
+            },
+            moveLeft: function () {
+                this.offset += this.$.viewport.offsetWidth * 0.75;
+                this.translate(this.offset);
+                this.enforceBoundaries();
+            },
+            moveRight: function () {
+                this.offset -= this.$.viewport.offsetWidth * 0.75;
+                this.translate(this.offset);
+                this.enforceBoundaries();
+            },
+            translate: function (offset) {
+                this.$.content.style.transform = `translateX(${offset}px)`;
+            },
+            dragStart: function (event) {
+                if (this.withMouseScroll) {
+                    this.moving = true;
+                    this.lastX = event.clientX;
+                }
+            },
+            dragMove: function (event) {
+                if (this.moving) {
+                    this.offset += (event.clientX - this.lastX);
+                    this.lastX = event.clientX;
+                    this.translate(this.offset);
+                }
+            },
+            dragStop: function (event) {
+                if (this.moving) {
+                    this.moving = false;
+                    this.enforceBoundaries();
+                }
+            },
+            dragCancel: function (event) {
+                if (this.moving) {
+                    var viewport = this.$.viewport,
+                        x = viewport.offsetLeft,
+                        y = viewport.offsetTop,
+                        w = viewport.offsetWidth,
+                        h = viewport.offsetHeight;
+                    if ((event.clientX <= x || event.clientX >= (x + w)) ||
+                        (event.clientY <= y || event.clientY >= (y + h))) {
+                        this.stop(event);
+                    }
+                }
+            },
+            onMouseOver: function (event) {
+                this.updateNeedButtons(true);
+            },
+            onMouseOut: function (event) {
+                this.updateNeedButtons(false);
+            },
+            enforceBoundaries: function () {
+                var nodes = this.$,
+                    contentWidth = nodes.content.scrollWidth,
+                    viewportWidth = nodes.viewport.offsetWidth;
+                if (this.offset > 0) {
+                    this.offset = 0;
+                } else if (Math.abs(this.offset) > contentWidth - viewportWidth) {
+                    this.offset = -(contentWidth - viewportWidth);
+                }
+                this.updateNeedButtons();
+                this.translate(this.offset);
+            },
+            updateNeedButtons: function (mouseInside) {
+                var nodes = this.$,
+                    contentWidth = nodes.content.scrollWidth,
+                    viewportWidth = nodes.viewport.offsetWidth;
+                if (mouseInside === undefined) {
+                    mouseInside = this.buttonsNeeded;
+                }
+                this.buttonsNeeded = (contentWidth > viewportWidth) && mouseInside;
+            },
+            applyEaseClass: function (moving) {
+                if (!moving) {
+                    return 'ease';
+                }
+                return '';
+            },
+            applyHiddenClass: function (isTouch, buttonsNeeded) {
+                if (!isTouch && buttonsNeeded) {
+                    return '';
+                } else {
+                    return 'hidden';
+                }
+            },
+            applyOverflowVisibility: function (isTouch) {
+                return isTouch ? 'touch' : 'non-touch';
+            },
+            _updateUI: function () {
+                if (this.isTouch) {
+                    this.removeListeners();
+                }
+            },
+            removeListeners: function () {
+                window.removeEventListener('resize', this.enforceBoundaries);
+                this.removeEventListener('mouseover', this.onMouseOver);
+                this.removeEventListener('mouseout', this.onMouseOut);
+            },
+            applyTouchBehaviour: function () {
+                this.isTouch = true;
+                window.removeEventListener('touchstart', this.applyTouchBehaviour);
+            },
+            created: function () {
+                this.applyTouchBehaviour = this.applyTouchBehaviour.bind(this);
+            },
+            attached: function () {
+                window.addEventListener('resize',
+                        this.enforceBoundaries.bind(this));
+                this.addEventListener('mouseover', this.onMouseOver.bind(this));
+                this.addEventListener('mouseout', this.onMouseOut.bind(this));
+                //update carousel behaviour on touch devices
+                window.addEventListener('touchstart', this.applyTouchBehaviour);
+            },
+            detached: function () {
+                if (!this.isTouch) {
+                    this.removeListeners();
+                }
+            }
+        });
+    </script>
+</dom-module>
