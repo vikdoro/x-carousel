@@ -21,8 +21,10 @@
   ],
   "dependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
-    "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^1.0.0",
     "polymer": "Polymer/polymer#^1.7.1",
     "webcomponentsjs": "webcomponents/webcomponentsjs"
+  },
+  "devDependencies": {
+    "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^1.0.0"
   }
 }
