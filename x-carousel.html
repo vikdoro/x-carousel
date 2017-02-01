@@ -144,7 +144,7 @@ some elements and style it as you wish.
                 this.enforceBoundaries();
             },
             translate: function (offset) {
-                this.$.content.style.transform = `translateX(${offset}px)`;
+                this.transform(`translateX(${offset}px)`, this.$.content);
             },
             dragStart: function (event) {
                 if (this.withMouseScroll) {
