@@ -25,10 +25,13 @@ some elements and style it as you wish.
     <style>
         :host {
             display: flex;
-            align-items: stretch;
+            display: -webkit-flex;
+            display: -ms-flexbox;
         }
         .button-slot {
             transition: opacity ease 0.5s;
+            -webkit-transition: opacity ease 0.5s;
+            -ms-transition: opacity ease 0.5s;
             z-index: 1;
         }
         .hidden {
@@ -36,8 +39,12 @@ some elements and style it as you wish.
             opacity: 0;
         }
         #viewport {
-            flex: 1 0;
+            flex: 1 0 auto;
+            -webkit-flex: 1 0 auto;
+            -ms-flex: 1 0 auto;
             display: flex;
+            display: -webkit-flex;
+            display: -ms-flexbox;
         }
         #viewport.non-touch {
             overflow: hidden;
@@ -49,13 +56,23 @@ some elements and style it as you wish.
         }
         #content {
             flex: 1 0 auto;
-            overflow: visible;
+            -webkit-flex: 1 0 auto;
+            -ms-flex: 1 0 auto;
             display: flex;
-            flex-wrap: nowrap;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             flex-direction: row;
+            -webkit-flex-direction: row;
+            -ms-flex-direction: row;
+            flex-wrap: nowrap;
+            -webkit-flex-wrap: nowrap;
+            -ms-flex-wrap: nowrap;
+            overflow: visible;
         }
         .ease {
             transition: all ease 0.5s;
+            -webkit-transition: all ease 0.5s;
+            -ms-transition: all ease 0.5s;
         }
     </style>
     <template>
