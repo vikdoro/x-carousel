@@ -1,3 +1,7 @@
+# blocklist
+branches:
+  except:
+  - gh-pages
 language: node_js
 matrix:
   include:
