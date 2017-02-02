@@ -10,7 +10,7 @@ sudo: required
 dist: trusty
 before_script:
   - mkdir -p vendors
-  - npm install -g web-components-tester bower
+  - npm install -g web-component-tester bower
   - export DISPLAY=:99.0
   - wget 'https://download-chromium.appspot.com/dl/Linux_x64?type=snapshots' -O chrome.zip && unzip chrome.zip
   - export PATH="$PATH:$(pwd)/chrome-linux"
