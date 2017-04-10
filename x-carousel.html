@@ -144,7 +144,7 @@ some elements and style it as you wish.
                 this._enforceBoundaries();
             },
             _translate: function (offset) {
-                this.transform(`translateX(${offset}px)`, this.$.content);
+                this.transform('translateX('+ offset + 'px)', this.$.content);
             },
             _dragStart: function (event) {
                 if (this.withMouseScroll) {
@@ -250,6 +250,16 @@ some elements and style it as you wish.
                 if (!this.isTouch) {
                     this._removeListeners();
                 }
+            },
+            moveTo: function (offset) {
+                this.offset = -offset + this.$.viewport.offsetWidth / 2;
+                this._translate(this.offset);
+                this._enforceBoundaries();
+            },
+            scrollToEnd: function () {
+                this.offset -= this.$.content.offsetWidth - this.$.viewport.offsetWidth;
+                this._translate(this.offset);
+                this._enforceBoundaries();
             }
         });
     </script>
