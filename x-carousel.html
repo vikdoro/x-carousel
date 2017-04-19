@@ -119,6 +119,11 @@ some elements and style it as you wish.
                     type: Boolean,
                     value: false,
                     notify: true
+                },
+                keepControlVisible: {
+                    type: Boolean,
+                    value: false,
+                    observer: '_onKeepControlVisibleChanged'
                 }
             },
             _leftTap: function (e) {
@@ -193,7 +198,9 @@ some elements and style it as you wish.
                 } else if (Math.abs(this.offset) > contentWidth - viewportWidth) {
                     this.offset = -(contentWidth - viewportWidth);
                 }
-                this._updateNeedButtons();
+                if (!this.keepControlVisible) {
+                    this._updateNeedButtons();
+                }
                 this._translate(this.offset);
             },
             _updateNeedButtons: function (mouseInside) {
@@ -226,31 +233,6 @@ some elements and style it as you wish.
                     this._removeListeners();
                 }
             },
-            _removeListeners: function () {
-                window.removeEventListener('resize', this._enforceBoundaries);
-                this.removeEventListener('mouseover', this._onMouseOver);
-                this.removeEventListener('mouseout', this._onMouseOut);
-            },
-            _applyTouchBehaviour: function () {
-                this.isTouch = true;
-                window.removeEventListener('touchstart', this._applyTouchBehaviour);
-            },
-            created: function () {
-                this._applyTouchBehaviour = this._applyTouchBehaviour.bind(this);
-            },
-            attached: function () {
-                window.addEventListener('resize',
-                        this._enforceBoundaries.bind(this));
-                this.addEventListener('mouseover', this._onMouseOver.bind(this));
-                this.addEventListener('mouseout', this._onMouseOut.bind(this));
-                //update carousel behaviour on touch devices
-                window.addEventListener('touchstart', this._applyTouchBehaviour);
-            },
-            detached: function () {
-                if (!this.isTouch) {
-                    this._removeListeners();
-                }
-            },
             moveTo: function (offset) {
                 this.offset = -offset + this.$.viewport.offsetWidth / 2;
                 this._translate(this.offset);
@@ -260,6 +242,52 @@ some elements and style it as you wish.
                 this.offset -= this.$.content.offsetWidth - this.$.viewport.offsetWidth;
                 this._translate(this.offset);
                 this._enforceBoundaries();
+            },
+            _addHoverListeners: function () {
+                this.addEventListener('mouseover', this._onMouseOver);
+                this.addEventListener('mouseout', this._onMouseOut);
+            },
+            _removeHoverListeners: function () {
+                this.removeEventListener('mouseover', this._onMouseOver);
+                this.removeEventListener('mouseout', this._onMouseOut);
+            },
+            _applyTouchBehaviour: function () {
+                this.isTouch = true;
+                window.removeEventListener('touchstart', this._applyTouchBehaviour);
+            },
+            _onKeepControlVisibleChanged: function (value, oldValue) {
+                if (typeof oldValue === 'undefined') {
+                    return;
+                } else if (value) {
+                    this._removeHoverListeners();
+                } else {
+                    this._addHoverListeners();
+                }
+            },
+            created: function () {
+                this._applyTouchBehaviour = this._applyTouchBehaviour.bind(this);
+                this._enforceBoundaries = this._enforceBoundaries.bind(this);
+                this._onMouseOver = this._onMouseOver.bind(this);
+                this._onMouseOut = this._onMouseOut.bind(this);
+            },
+            attached: function () {
+                window.addEventListener('resize', this._enforceBoundaries);
+                /* Update carousel behaviour on touch devices */
+                window.addEventListener('touchstart', this._applyTouchBehaviour);
+
+                if (this.keepControlVisible) {
+                    this.buttonsNeeded = true;
+                    return;
+                }
+
+                this.addEventListener('mouseover', this._onMouseOver);
+                this.addEventListener('mouseout', this._onMouseOut);
+            },
+            detached: function () {
+                if (!this.isTouch) {
+                    this._removeHoverListeners();
+                    window.removeEventListener('resize', this._enforceBoundaries);
+                }
             }
         });
     </script>
