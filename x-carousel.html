@@ -120,10 +120,10 @@ some elements and style it as you wish.
                     value: false,
                     notify: true
                 },
-                keepControlVisible: {
+                keepControlsVisible: {
                     type: Boolean,
                     value: false,
-                    observer: '_onKeepControlVisibleChanged'
+                    observer: '_onKeepControlsVisibleChanged'
                 }
             },
             _leftTap: function (e) {
@@ -198,7 +198,7 @@ some elements and style it as you wish.
                 } else if (Math.abs(this.offset) > contentWidth - viewportWidth) {
                     this.offset = -(contentWidth - viewportWidth);
                 }
-                if (!this.keepControlVisible) {
+                if (!this.keepControlsVisible) {
                     this._updateNeedButtons();
                 }
                 this._translate(this.offset);
@@ -255,7 +255,7 @@ some elements and style it as you wish.
                 this.isTouch = true;
                 window.removeEventListener('touchstart', this._applyTouchBehaviour);
             },
-            _onKeepControlVisibleChanged: function (value, oldValue) {
+            _onKeepControlsVisibleChanged: function (value, oldValue) {
                 if (typeof oldValue === 'undefined') {
                     return;
                 } else if (value) {
@@ -275,7 +275,7 @@ some elements and style it as you wish.
                 /* Update carousel behaviour on touch devices */
                 window.addEventListener('touchstart', this._applyTouchBehaviour);
 
-                if (this.keepControlVisible) {
+                if (this.keepControlsVisible) {
                     this.buttonsNeeded = true;
                     return;
                 }
