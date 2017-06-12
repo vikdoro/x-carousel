@@ -164,7 +164,7 @@ some elements and style it as you wish.
                 this.$.content.style.transition = 'transform ease-in-out ' + transition + 'ms';
 
                 window.requestAnimationFrame(function() {
-                        this.$.content.style.transform = `translateX(${offset}px)`;
+                        this.$.content.style.transform = 'translateX(' + offset + 'px)';
                 }.bind(this));
 
                 //We set back the flag with async. Transitionend would not fire if transition is set to zero.
