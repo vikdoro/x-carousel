@@ -69,24 +69,19 @@ some elements and style it as you wish.
             -ms-flex-wrap: nowrap;
             overflow: visible;
         }
-        .ease {
-            transition: all ease 0.5s;
-            -webkit-transition: all ease 0.5s;
-            -ms-transition: all ease 0.5s;
-        }
     </style>
     <template>
-        <div class$="button-slot [[_applyHiddenClass(isTouch, buttonsNeeded)]]" on-tap="_leftTap">
+        <div id="left" class="button-slot" on-tap="_leftTap">
             <slot name="left-button"></slot>
         </div>
         <div id="viewport" class$="{{_applyOverflowVisibility(isTouch)}}"
              on-mousedown="_dragStart" on-mousemove="_dragMove"
-             on-mouseup="_dragStop" on-mouseout="_dragCancel">
-            <div id="content" class$="{{_applyEaseClass(moving)}}">
+             on-mouseup="_dragStop" on-mouseout="_dragCancel" on-wheel="horizontalScroll">
+            <div id="content">
                 <slot name="content"></slot>
             </div>
         </div>
-        <div class$="button-slot [[_applyHiddenClass(isTouch, buttonsNeeded)]]" on-tap="_rightTap">
+        <div id="right" class="button-slot" on-tap="_rightTap">
             <slot name="right-button"></slot>
         </div>
     </template>
@@ -105,26 +100,34 @@ some elements and style it as you wish.
                     value: false,
                     notify: true
                 },
-                isTouch: {
-                    type: Boolean,
-                    value: false,
-                    notify: true,
-                    observer: '_updateUI'
-                },
-                withMouseScroll: {
+                dragging: {
                     type: Boolean,
                     value: false
                 },
-                buttonsNeeded: {
+                isTouch: {
                     type: Boolean,
                     value: false,
                     notify: true
                 },
-                keepControlsVisible: {
+                withMouseDrag: {
                     type: Boolean,
-                    value: false,
-                    observer: '_onKeepControlsVisibleChanged'
+                    value: false
+                },
+                keepButtonsVisible: {
+                    type: Boolean,
+                    value: false
+                },
+                wheelSettled: {
+                    type: Boolean,
+                    value: true
                 }
+            },
+            observers: [
+                '_unhideButtons(isTouch, keepButtonsVisible)'
+            ],
+            listeners: {
+                'mouseOver': '_onMouseOver',
+                'mouseout': '_onMouseOut'
             },
             _leftTap: function (e) {
                 var target = e.path ? e.path[0] : e.target;
@@ -139,39 +142,57 @@ some elements and style it as you wish.
                 }
             },
             moveLeft: function () {
-                this.offset += this.$.viewport.offsetWidth * 0.75;
-                this._translate(this.offset);
+                this.offset += this.$.viewport.offsetWidth * 0.5;
                 this._enforceBoundaries();
             },
             moveRight: function () {
-                this.offset -= this.$.viewport.offsetWidth * 0.75;
-                this._translate(this.offset);
+                this.offset -= this.$.viewport.offsetWidth * 0.5;
                 this._enforceBoundaries();
             },
-            _translate: function (offset) {
-                this.transform('translateX('+ offset + 'px)', this.$.content);
+            _translate: function (offset, transition) {
+                if (offset === this.lastOffset) {
+                    return;
+                }
+
+                if (typeof transition !== 'number') {
+                    transition = 350;
+                }
+
+                this.moving = true;
+
+                this.$.content.animate([
+                        {transform: 'translateX('+ (this.lastOffset || 0) + 'px)'},
+                        {transform: 'translateX('+ offset + 'px)'}
+                    ], {
+                        fill: 'forwards',
+                        duration: transition,
+                        easing: 'ease-in-out'
+                }).onfinish = function() {
+                    this.moving = false;
+                }.bind(this);
+
+                this.lastOffset = offset;
             },
             _dragStart: function (event) {
-                if (this.withMouseScroll) {
-                    this.moving = true;
+                if (this.withMouseDrag) {
+                    this.dragging = true;
                     this.lastX = event.clientX;
                 }
             },
             _dragMove: function (event) {
-                if (this.moving) {
+                if (this.dragging) {
                     this.offset += (event.clientX - this.lastX);
                     this.lastX = event.clientX;
-                    this._translate(this.offset);
                 }
             },
             _dragStop: function (event) {
-                if (this.moving) {
-                    this.moving = false;
+                if (this.dragging) {
+                    this.dragging = false;
                     this._enforceBoundaries();
                 }
             },
             _dragCancel: function (event) {
-                if (this.moving) {
+                if (this.dragging) {
                     var viewport = this.$.viewport,
                         x = viewport.offsetLeft,
                         y = viewport.offsetTop,
@@ -179,114 +200,89 @@ some elements and style it as you wish.
                         h = viewport.offsetHeight;
                     if ((event.clientX <= x || event.clientX >= (x + w)) ||
                         (event.clientY <= y || event.clientY >= (y + h))) {
-                        this.stop(event);
+                        this._dragStop(event);
                     }
                 }
             },
             _onMouseOver: function (event) {
-                this._updateNeedButtons(true);
+                if (this.isTouch || this.keepButtonsVisible) {
+                    return;
+                }
+                this._hideButtons([]);
             },
             _onMouseOut: function (event) {
-                this._updateNeedButtons(false);
-            },
-            _enforceBoundaries: function () {
-                var nodes = this.$,
-                    contentWidth = nodes.content.scrollWidth,
-                    viewportWidth = nodes.viewport.offsetWidth;
-                if (this.offset > 0) {
-                    this.offset = 0;
-                } else if (Math.abs(this.offset) > contentWidth - viewportWidth) {
-                    this.offset = -(contentWidth - viewportWidth);
+                if (this.isTouch || this.keepButtonsVisible) {
+                    return;
                 }
-                if (!this.keepControlsVisible) {
-                    this._updateNeedButtons();
-                }
-                this._translate(this.offset);
+                this._hideButtons(['left', 'right']);
             },
-            _updateNeedButtons: function (mouseInside) {
-                var nodes = this.$,
-                    contentWidth = nodes.content.scrollWidth,
-                    viewportWidth = nodes.viewport.offsetWidth;
-                if (mouseInside === undefined) {
-                    mouseInside = this.buttonsNeeded;
-                }
-                this.buttonsNeeded = (contentWidth > viewportWidth) && mouseInside;
-            },
-            _applyEaseClass: function (moving) {
-                if (!moving) {
-                    return 'ease';
-                }
-                return '';
-            },
-            _applyHiddenClass: function (isTouch, buttonsNeeded) {
-                if (!isTouch && buttonsNeeded) {
-                    return '';
+            _enforceBoundaries: function (transition) {
+                var contentWidth = this.$.content.scrollWidth,
+                    viewportWidth = this.$.viewport.offsetWidth,
+                    buttonToShow;
+                this.offset = Math.max(Math.min(this.offset, 0), viewportWidth - contentWidth);
+
+                if (this.offset === 0) {
+                    this._hideButtons(['left']);
+                } else if (this.offset === viewportWidth - contentWidth) {
+                    this._hideButtons(['right']);
                 } else {
-                    return 'hidden';
+                    this._hideButtons([]);
                 }
+
+                this._translate(this.offset, transition);
+            },
+            _hideButtons: function (toHide) {
+                ['left', 'right'].forEach(function(id) {
+                   this.toggleClass('hidden', toHide.indexOf(id) > -1, this.$[id]);
+                }, this);
             },
             _applyOverflowVisibility: function (isTouch) {
                 return isTouch ? 'touch' : 'non-touch';
             },
-            _updateUI: function () {
-                if (this.isTouch) {
-                    this._removeListeners();
+            _unhideButtons: function (unhide) {
+                if (unhide) {
+                    this._hideButtons([]);
                 }
             },
-            moveTo: function (offset) {
+            moveTo: function (offset, transition) {
                 this.offset = -offset + this.$.viewport.offsetWidth / 2;
-                this._translate(this.offset);
-                this._enforceBoundaries();
-            },
-            scrollToEnd: function () {
-                this.offset -= this.$.content.offsetWidth - this.$.viewport.offsetWidth;
-                this._translate(this.offset);
-                this._enforceBoundaries();
-            },
-            _addHoverListeners: function () {
-                this.addEventListener('mouseover', this._onMouseOver);
-                this.addEventListener('mouseout', this._onMouseOut);
-            },
-            _removeHoverListeners: function () {
-                this.removeEventListener('mouseover', this._onMouseOver);
-                this.removeEventListener('mouseout', this._onMouseOut);
+                this._enforceBoundaries(transition);
             },
             _applyTouchBehaviour: function () {
+                /* Update behaviour on touch devices */
                 this.isTouch = true;
                 window.removeEventListener('touchstart', this._applyTouchBehaviour);
-            },
-            _onKeepControlsVisibleChanged: function (value, oldValue) {
-                if (typeof oldValue === 'undefined') {
-                    return;
-                } else if (value) {
-                    this._removeHoverListeners();
-                } else {
-                    this._addHoverListeners();
-                }
             },
             created: function () {
                 this._applyTouchBehaviour = this._applyTouchBehaviour.bind(this);
                 this._enforceBoundaries = this._enforceBoundaries.bind(this);
-                this._onMouseOver = this._onMouseOver.bind(this);
-                this._onMouseOut = this._onMouseOut.bind(this);
             },
             attached: function () {
                 window.addEventListener('resize', this._enforceBoundaries);
-                /* Update carousel behaviour on touch devices */
                 window.addEventListener('touchstart', this._applyTouchBehaviour);
-
-                if (this.keepControlsVisible) {
-                    this.buttonsNeeded = true;
-                    return;
-                }
-
-                this.addEventListener('mouseover', this._onMouseOver);
-                this.addEventListener('mouseout', this._onMouseOut);
             },
             detached: function () {
+                window.removeEventListener('resize', this._enforceBoundaries);
                 if (!this.isTouch) {
-                    this._removeHoverListeners();
-                    window.removeEventListener('resize', this._enforceBoundaries);
+                    window.removeEventListener('touchstart', this._applyTouchBehaviour);
+                }
+            },
+            horizontalScroll: function (e) {
+                e.preventDefault();
+
+                if (!this.moving && this.wheelSettled) {
+                    if (e.deltaX < -2) {
+                        this.moveRight();
+                        this.wheelSettled = false;
+                    } else if (e.deltaX > 2) {
+                        this.moveLeft();
+                        this.wheelSettled = false;
+                    }
+                }
+
+                if (Math.abs(e.deltaX) < 2 && !this.moving) {
+                    this.wheelSettled = true;
                 }
             }
         });

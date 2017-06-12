@@ -79,19 +79,27 @@
                 carousel = fixture('trivial');
             });
             test('move', function() {
+                var startOffset = carousel.offset,
+                    updatedOffset;
                 carousel.moveRight();
-                assert.include(carousel.$.content.style.transform, 'translateX(-');
+                updatedOffset = carousel.offset;
+                assert.isTrue(startOffset > updatedOffset, 'Moving right doesn\'t increment negative offset');
                 carousel.moveLeft();
-                assert.include(carousel.$.content.style.transform, 'translateX(0px)');
+                updatedOffset = carousel.offset;
+                assert.isTrue(startOffset === updatedOffset, 'Moving right and then left doesn\'t result in original offset');
             });
             test('buttons', function() {
                 var leftButton = carousel.querySelector('[carousel-control-left]'),
-                    rightButton = carousel.querySelector('[carousel-control-right]');
+                    rightButton = carousel.querySelector('[carousel-control-right]'),
+                    startOffset = carousel.offset,
+                    updatedOffset;
 
                 MockInteractions.tap(rightButton);
-                assert.include(carousel.$.content.style.transform, 'translateX(-');
+                updatedOffset = carousel.offset;
+                assert.isTrue(startOffset > updatedOffset, 'Tapping right doesn\'t increment negative offset');
                 MockInteractions.tap(leftButton);
-                assert.include(carousel.$.content.style.transform, 'translateX(0px)');
+                updatedOffset = carousel.offset;
+                assert.isTrue(startOffset === updatedOffset, 'Tapping right and then left doesn\'t result in original offset');
             });
         });
     </script>
