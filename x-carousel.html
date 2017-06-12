@@ -126,7 +126,7 @@ some elements and style it as you wish.
                 '_unhideButtons(isTouch, keepButtonsVisible)'
             ],
             listeners: {
-                'mouseOver': '_onMouseOver',
+                'mouseover': '_onMouseOver',
                 'mouseout': '_onMouseOut'
             },
             _leftTap: function (e) {
@@ -150,7 +150,7 @@ some elements and style it as you wish.
                 this._enforceBoundaries();
             },
             _translate: function (offset, transition) {
-                if (offset === this.lastOffset) {
+                if (offset === (this.lastOffset || 0)) {
                     return;
                 }
 
@@ -160,16 +160,17 @@ some elements and style it as you wish.
 
                 this.moving = true;
 
-                this.$.content.animate([
-                        {transform: 'translateX('+ (this.lastOffset || 0) + 'px)'},
-                        {transform: 'translateX('+ offset + 'px)'}
-                    ], {
-                        fill: 'forwards',
-                        duration: transition,
-                        easing: 'ease-in-out'
-                }).onfinish = function() {
+                this.$.content.style.transform = 'translateX(' + (this.lastOffset || 0) + 'px)';
+                this.$.content.style.transition = 'transform ease-in-out ' + transition + 'ms';
+
+                window.requestAnimationFrame(function() {
+                        this.$.content.style.transform = `translateX(${offset}px)`;
+                }.bind(this));
+
+                //We set back the flag with async. Transitionend would not fire if transition is set to zero.
+                this.async(function() {
                     this.moving = false;
-                }.bind(this);
+                }, transition);
 
                 this.lastOffset = offset;
             },
@@ -243,6 +244,8 @@ some elements and style it as you wish.
             _unhideButtons: function (unhide) {
                 if (unhide) {
                     this._hideButtons([]);
+                } else {
+                    this._hideButtons(['left', 'right']);
                 }
             },
             moveTo: function (offset, transition) {
@@ -270,7 +273,6 @@ some elements and style it as you wish.
             },
             horizontalScroll: function (e) {
                 e.preventDefault();
-
                 if (!this.moving && this.wheelSettled) {
                     if (e.deltaX < -2) {
                         this.moveRight();
