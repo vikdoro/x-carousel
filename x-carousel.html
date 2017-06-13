@@ -241,8 +241,8 @@ some elements and style it as you wish.
             _applyOverflowVisibility: function (isTouch) {
                 return isTouch ? 'touch' : 'non-touch';
             },
-            _unhideButtons: function (unhide) {
-                if (unhide) {
+            _unhideButtons: function (isTouch, keepButtonsVisible) {
+                if (isTouch || keepButtonsVisible) {
                     this._hideButtons([]);
                 } else {
                     this._hideButtons(['left', 'right']);
